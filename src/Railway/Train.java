@@ -74,6 +74,7 @@ public class Train {
                     bookingStatus = Status.CONFIRMED;
                     this.totalSeats -= 1;
                     availableTickets.put(key, value + 1);
+                    assignSeatNumber(ticket);
                 } else if (availableWaitingList > 0) {
                     bookingStatus = Status.WAITING_LIST;
                     this.availableWaitingList -= 1;
@@ -87,6 +88,21 @@ public class Train {
             ticket.status = bookingStatus;
         }
         return tickets;
+    }
+
+    private void assignSeatNumber(Ticket ticket) {
+        HashMap<Integer, Boolean> availableSeats = ticket.train.availableSeats;
+
+        for(Map.Entry<Integer, Boolean> entry : availableSeats.entrySet()){
+            Integer seatNumber = entry.getKey();
+            Boolean isBooked = entry.getValue();
+
+            if(!isBooked) {
+                ticket.seatNumber = seatNumber;
+                return;
+            }
+        }
+        ticket.seatNumber = 0;
     }
 
 }

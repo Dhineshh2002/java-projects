@@ -4,6 +4,7 @@ import Railway.Train;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Scanner;
 
 public class Main {
@@ -47,7 +48,7 @@ public class Main {
         availableTickets.put(station8.code, 0);
         availableTickets.put(station9.code, 0);
 
-        HashMap<Integer, Boolean> availableSeats = generateSeats(1);
+        LinkedHashMap<Integer, Boolean> availableSeats = generateSeats(1);
 
         Train uzhalavanExpress = new Train(
                 1000,
@@ -103,8 +104,8 @@ public class Main {
         } while (ch != 4);
     }
 
-    private static HashMap<Integer, Boolean> generateSeats(int totalSeats) {
-        HashMap<Integer, Boolean> generatedSeats = new HashMap<>();
+    private static LinkedHashMap<Integer, Boolean> generateSeats(int totalSeats) {
+        LinkedHashMap<Integer, Boolean> generatedSeats = new LinkedHashMap<>();
         for(int i = 1; i<=totalSeats; i++) {
             generatedSeats.put(i, false);
         }
