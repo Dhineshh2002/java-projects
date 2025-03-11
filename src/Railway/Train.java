@@ -1,9 +1,6 @@
 package Railway;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Train {
 
@@ -13,15 +10,14 @@ public class Train {
     Station startingPoint;
     Station destinationPoint;
     int totalSeats;
-    int availableWaitingList;
+    HashMap<Integer, Boolean> availableSeats;
     int totalWaitingList;
-    ArrayList<Ticket> tickets;
-    HashMap<String, Integer> availableTickets = new HashMap<>();
-    HashMap<Integer, Boolean> availableSeats = new HashMap<>();
+    int availableWaitingList;
+    ArrayList<Ticket> bookedTickets;
+    Queue<Ticket> waitingListTickets;
 
     public Train(int number, String name, ArrayList<Station> stations, Station startingPoint,
-                 Station destinationPoint, int totalSeats, int availableWaitingList,
-                 HashMap<String, Integer> availableTickets, HashMap<Integer, Boolean> availableSeats) {
+                 Station destinationPoint, int totalSeats, int availableWaitingList, HashMap<Integer, Boolean> availableSeats) {
         this.number = number;
         this.name = name;
         this.stations = stations;
@@ -29,7 +25,6 @@ public class Train {
         this.destinationPoint = destinationPoint;
         this.totalSeats = totalSeats;
         this.availableWaitingList = availableWaitingList;
-        this.availableTickets = availableTickets;
         this.availableSeats = availableSeats;
     }
 
@@ -41,68 +36,51 @@ public class Train {
         return null;
     }
 
-    public ArrayList<Ticket> bookTicket(ArrayList<Ticket> tickets) {
-        for(Ticket ticket: tickets) {
+    public ArrayList<Ticket> bookTickets(ArrayList<Ticket> tickets) {
+        for (Ticket ticket : tickets) {
 
             // total seats in train
             int totalSeatsInTrain = this.totalSeats;
             // total waitlist available in train
             int availableWaitingList = this.availableWaitingList;
 
-            // available tickets in each stations
-            HashMap<String, Integer> availableTickets = this.availableTickets;
-
             boolean sourceCrossed = false;
             boolean destinationCrossed = false;
-            Status bookingStatus = null;
+            boolean canWeBookTicket = false;
 
-            for (Map.Entry<String, Integer> entry : availableTickets.entrySet()) {
-                String key = entry.getKey();
-                int value = entry.getValue();
-
-                if (!sourceCrossed && ticket.boarding.code.equalsIgnoreCase(key)) {
+            for (Station station : ticket.getTrain().stations) {
+                if(!sourceCrossed && station.isEqual(ticket.getBoarding())) {
                     sourceCrossed = true;
-                } else if (ticket.destination.code.equalsIgnoreCase(key)) {
-                    bookingStatus = Status.NOT_CONFIRMED;
+                } else if (sourceCrossed && station.isEqual(ticket.getDestination())) {
                     break;
                 }
-                boolean canWeBook = true;
-                if (sourceCrossed && !destinationCrossed) {
-                    canWeBook = value < totalSeatsInTrain;
-                }
-                if(canWeBook) {
-                    bookingStatus = Status.CONFIRMED;
-                    this.totalSeats -= 1;
-                    availableTickets.put(key, value + 1);
-                    assignSeatNumber(ticket);
-                } else if (availableWaitingList > 0) {
-                    bookingStatus = Status.WAITING_LIST;
-                    this.availableWaitingList -= 1;
-                    this.totalWaitingList += 1;
-                } else {
-                    bookingStatus = Status.NOT_CONFIRMED;
+                if(sourceCrossed) {
+                    int passengersCount = station.passengersCount;
+                    canWeBookTicket = passengersCount < totalSeatsInTrain;
                 }
             }
-            ticket.generatePnr();
-            ticket.train = this;
-            ticket.status = bookingStatus;
+
+            if(canWeBookTicket) {
+                for (Map.Entry<Integer, Boolean> entry : availableSeats.entrySet()) {
+                    Integer seatNumber = entry.getKey();
+                    Boolean isBooked = entry.getValue();
+                    if (!isBooked) {
+                        ticket.generatePnr()
+                                .setSeatNumber(seatNumber).setStatus(Status.CONFIRMED);
+                        availableSeats.put(seatNumber, true);
+                        break;
+                    }
+                }
+                if(ticket.getStatus() != Status.CONFIRMED && waitingListTickets.size() < totalWaitingList) {
+                    ticket.generatePnr()
+                            .setSeatNumber(0).setStatus(Status.WAITING_LIST);
+                    waitingListTickets.add(ticket);
+                    break;
+                }
+                ticket.setStatus(Status.NOT_CONFIRMED);
+            }
         }
         return tickets;
-    }
-
-    private void assignSeatNumber(Ticket ticket) {
-        HashMap<Integer, Boolean> availableSeats = ticket.train.availableSeats;
-
-        for(Map.Entry<Integer, Boolean> entry : availableSeats.entrySet()){
-            Integer seatNumber = entry.getKey();
-            Boolean isBooked = entry.getValue();
-
-            if(!isBooked) {
-                ticket.seatNumber = seatNumber;
-                return;
-            }
-        }
-        ticket.seatNumber = 0;
     }
 
 }

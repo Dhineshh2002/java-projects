@@ -4,26 +4,65 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Random;
 
 public class Ticket {
 
-    String pnr;
-    Passenger passenger;
-    Train train;
-    Station boarding;
-    Station destination;
-    Status status;
-    int seatNumber;
+    public Ticket setStatus(Status status) {
+        this.status = status;
+        return this;
+    }
+
+    public Ticket setSeatNumber(int seatNumber) {
+        this.seatNumber = seatNumber;
+        return this;
+    }
+
+    public String getPnr() {
+        return pnr;
+    }
+
+    public Passenger getPassenger() {
+        return passenger;
+    }
+
+    public Train getTrain() {
+        return train;
+    }
+
+    public Station getBoarding() {
+        return boarding;
+    }
+
+    public Station getDestination() {
+        return destination;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public int getSeatNumber() {
+        return seatNumber;
+    }
+
+    private String pnr;
+    private Passenger passenger;
+    private Train train;
+    private Station boarding;
+    private Station destination;
+    private Status status;
+    private int seatNumber;
 
 
-    public Ticket(Station destination, Station boarding) {
+    public Ticket(Station destination, Station boarding, Train train, Passenger passenger) {
         this.destination = destination;
         this.boarding = boarding;
+        this.train = train;
+        this.passenger = passenger;
     }
 
     public static void printTickets(ArrayList<Ticket> tickets) {
-        for(Ticket ticket: tickets) {
+        for (Ticket ticket : tickets) {
             System.out.println("========== TRAIN TICKET ==========");
             System.out.println("PNR: " + ticket.pnr);
             System.out.println("Passenger: " + (ticket.passenger != null ? ticket.passenger.name : "N/A"));
@@ -45,7 +84,6 @@ public class Ticket {
         return this;
     }
 }
-
 
 
 enum Status {

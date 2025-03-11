@@ -20,9 +20,7 @@ public class IndianRailway {
 
 
     public ArrayList<Train> getAvailableTrains(String source, String destination) {
-
         ArrayList<Train> availableTrains = new ArrayList<>();
-
         for(Train train : trains) {
             boolean flag_source = false;
             for(Station station: train.stations) {
@@ -47,7 +45,6 @@ public class IndianRailway {
         System.out.print("Enter destination station : ");
         destination = scanner.next();
 
-        HashMap<String, Station> inputStations = new HashMap<>();
         Station boardingStation = null;
         Station destinationStation = null;
         boolean bothStationsAreValid = false;
@@ -89,21 +86,18 @@ public class IndianRailway {
                         passenger.name = scanner.next();
                         System.out.print("Enter passenger age: ");
                         passenger.age = scanner.nextInt();
-                        System.out.print("Enter passenger dob: ");
-                        passenger.dob = scanner.next();
-                        System.out.print("Enter passenger phone: ");
-                        passenger.phone = scanner.next();
+//                        System.out.print("Enter passenger dob: ");
+//                        passenger.dob = scanner.next();
+//                        System.out.print("Enter passenger phone: ");
+//                        passenger.phone = scanner.next();
 
-                        Ticket ticket = new Ticket(boardingStation, destinationStation);
-                        ticket.passenger = passenger;
+                        Ticket ticket = new Ticket(boardingStation, destinationStation, train, passenger);
                         tickets.add(ticket);
 
                         System.out.println("Press 1 to add passenger, other key to proceed to next step.");
                         addPassenger = scanner.nextInt();
-
                     } while (addPassenger == 1);
-
-                    tickets = train.bookTicket(tickets);
+                    tickets = train.bookTickets(tickets);
                     Ticket.printTickets(tickets);
                 } else {
                     System.out.println("Invalid train number - " + trainNumber);
@@ -118,8 +112,8 @@ public class IndianRailway {
 
     public void printTrains(ArrayList<Train> trains) {
         for(Train train: trains) {
-            System.out.println("Train number: " + train.number);
-            System.out.println("Train name: " + train.name);
+            System.out.println("---------------------------------------------------------------------------------");
+            System.out.println("---number: " + train.number + "----name: " + train.name);
             System.out.println("Seats available: " + train.totalSeats);
             System.out.println("Waiting List available: " + (train.availableWaitingList - train.totalWaitingList));
             System.out.println("---------------------------------------------------------------------------------");

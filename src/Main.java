@@ -36,18 +36,6 @@ public class Main {
         uzhavanExpressStations.add(station8);
         uzhavanExpressStations.add(station9);
 
-        HashMap<String, Integer> availableTickets = new HashMap<>();
-        availableTickets.put(station.code, 0);
-        availableTickets.put(station1.code, 0);
-        availableTickets.put(station2.code, 0);
-        availableTickets.put(station3.code, 0);
-        availableTickets.put(station4.code, 0);
-        availableTickets.put(station5.code, 0);
-        availableTickets.put(station6.code, 0);
-        availableTickets.put(station7.code, 0);
-        availableTickets.put(station8.code, 0);
-        availableTickets.put(station9.code, 0);
-
         LinkedHashMap<Integer, Boolean> availableSeats = generateSeats(1);
 
         Train uzhalavanExpress = new Train(
@@ -58,7 +46,6 @@ public class Main {
                 station9,
                 1,
                 1,
-                availableTickets,
                 availableSeats
         );
 
@@ -106,7 +93,7 @@ public class Main {
 
     private static LinkedHashMap<Integer, Boolean> generateSeats(int totalSeats) {
         LinkedHashMap<Integer, Boolean> generatedSeats = new LinkedHashMap<>();
-        for(int i = 1; i<=totalSeats; i++) {
+        for (int i = 1; i <= totalSeats; i++) {
             generatedSeats.put(i, false);
         }
         return generatedSeats;
