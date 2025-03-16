@@ -1,32 +1,41 @@
 package Railway;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Scanner;
+import lombok.Data;
 
+import java.util.*;
+
+@Data
 public class IndianRailway {
 
-    Scanner scanner = new Scanner(System.in);
-    private static ArrayList<Train> trains = new ArrayList<>();
-    private static ArrayList<Station> stations = new ArrayList<>();
+    private static Scanner scanner = new Scanner(System.in);
+    private static List<Train> trains = new ArrayList<>();
+    private static Set<Station> stations = new HashSet<>();
 
-    public void setStations(ArrayList<Station> stations) {
-        this.stations = stations;
+    public void addStations(List<Station> stations) {
+        IndianRailway.stations.addAll(stations);
     }
 
     public void addTrains(Train train) {
-        trains.add(train);
+        IndianRailway.trains.add(train);
     }
 
 
-    public ArrayList<Train> getAvailableTrains(String source, String destination) {
-        ArrayList<Train> availableTrains = new ArrayList<>();
-        for(Train train : trains) {
-            boolean flag_source = false;
-            for(Station station: train.stations) {
-                if(station.name.equalsIgnoreCase(source) || station.code.equalsIgnoreCase(source)) {
-                    flag_source = true;
-                } else if(flag_source && (station.name.equalsIgnoreCase(destination) || station.code.equalsIgnoreCase(destination))) {
+    private List<Train> getAvailableTrains(Station source, Station destination) {
+        List<Train> availableTrains = new ArrayList<>();
+
+        for (Train train : trains) {
+            List<Station> stations = train.getStations();
+            int sourceIndex = -1;
+
+            for (int i = 0; i < stations.size(); i++) {
+                Station station = stations.get(i);
+
+                if (station.isEqual(source)) {
+                    sourceIndex = i;
+                    continue;
+                }
+
+                if (sourceIndex != -1 && station.isEqual(destination)) {
                     availableTrains.add(train);
                     break;
                 }
@@ -37,6 +46,122 @@ public class IndianRailway {
 
     public void bookTicket() {
 
+        HashMap<String, Station> stationHashMap = getBoardingAndDestination();
+        Station sourceStation = stationHashMap.get("source");
+        Station destinationStation = stationHashMap.get("destination");
+
+        if (sourceStation != null && destinationStation != null) {
+            List<Train> availableTrains = getAvailableTrains(sourceStation, destinationStation);
+            if (!availableTrains.isEmpty()) {
+                Train train = selectTrain(availableTrains);
+                if (train != null) {
+                    List<Ticket> tickets = getTickets(sourceStation, destinationStation, train);
+                    Ticket.printTickets(train.bookTickets(tickets));
+                } else {
+                    System.out.println("Invalid train has chosen!");
+                }
+            } else {
+                System.out.println("No trains are available in selected route!");
+            }
+        } else {
+            System.out.println("Invalid stations selected!");
+        }
+    }
+
+    private List<Ticket> getTickets(Station source, Station destination, Train train) {
+        List<Ticket> tickets = new ArrayList<>();
+        System.out.println("Enter passengers details...");
+        int add;
+        do {
+            String name;
+            int age;
+            System.out.print("Enter name: ");
+            name = scanner.next();
+            System.out.print("Enter age: ");
+            age = scanner.nextInt();
+            Passenger passenger = Passenger.builder()
+                    .name(name)
+                    .age(age)
+                    .build();
+            Ticket ticket = Ticket.builder()
+                    .passenger(passenger)
+                    .boarding(source)
+                    .destination(destination)
+                    .train(train)
+                    .build();
+            System.out.print("Press 1 to add another passenger: ");
+            add = scanner.nextInt();
+            tickets.add(ticket);
+        } while (add == 1);
+
+        return tickets;
+    }
+
+    private Train selectTrain(List<Train> availableTrains) {
+        printTrains(availableTrains);
+        System.out.print("Choose train by number: ");
+        int trainNumber = scanner.nextInt();
+        return availableTrains.stream()
+                .filter(train -> train.getNumber() == trainNumber)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void printTrains(List<Train> trains) {
+        for (Train train : trains) {
+            System.out.println("---------------------------------------------------------------------------------");
+            System.out.println("Number: " + train.getNumber() + ", Name: " + train.getName());
+            System.out.println("---------------------------------------------------------------------------------");
+        }
+    }
+
+    public void cancelTicket() {
+
+        String pnr;
+        System.out.print("Enter your pnr: ");
+        pnr = scanner.next();
+        System.out.println("Are you sure want to cancel? Y/N");
+        String isHeSure;
+        isHeSure = scanner.next();
+
+        if (isHeSure.equalsIgnoreCase("Y") || isHeSure.equalsIgnoreCase("YES")) {
+            Ticket ticket = findTicket(pnr);
+            if (ticket != null) {
+                ticket.getTrain().cancelTicket(ticket);
+            } else {
+                System.out.println("Invalid pnr number!");
+            }
+        } else {
+            System.out.println("Ticket cancellation process is cancelled..");
+        }
+
+    }
+
+    private Ticket findTicket(String pnr) {
+        for (Train train : trains) {
+            System.out.println(train.getBookedTickets());
+            return train.getBookedTickets().stream()
+                    .filter(ticket -> ticket.getPnr().equalsIgnoreCase(pnr))
+                    .findFirst().orElseGet(() -> train.getWaitingListTickets().stream()
+                            .filter(ticket -> ticket.getPnr().equalsIgnoreCase(pnr))
+                            .findFirst()
+                            .orElse(null));
+        }
+        return null;
+    }
+
+    public void viewAvailability() {
+        HashMap<String, Station> stationHashMap = getBoardingAndDestination();
+        Station sourceStation = stationHashMap.get("source");
+        Station destinationStation = stationHashMap.get("destination");
+        if(sourceStation != null && destinationStation != null) {
+            List<Train> availableTrains = getAvailableTrains(sourceStation, destinationStation);
+            printTrains(availableTrains);
+            availableTrains.forEach(train -> train.checkAvailability(sourceStation));
+        }
+    }
+
+    private HashMap<String, Station> getBoardingAndDestination() {
         String source;
         String destination;
 
@@ -45,81 +170,22 @@ public class IndianRailway {
         System.out.print("Enter destination station : ");
         destination = scanner.next();
 
-        Station boardingStation = null;
+        Station sourceStation = null;
         Station destinationStation = null;
-        boolean bothStationsAreValid = false;
 
-        for (Station station : stations){
-            if(boardingStation == null && (station.name.equalsIgnoreCase(source) 
-                    || station.code.equalsIgnoreCase(source))) {
-                boardingStation = station;
-            } else if (destinationStation == null && (station.name.equalsIgnoreCase(destination)
-                    || station.code.equalsIgnoreCase(destination))) {
+
+        for (Station station : stations) {
+            if (sourceStation == null && station.isEqual(source)) {
+                sourceStation = station;
+            } else if (destinationStation == null && station.isEqual(destination)) {
                 destinationStation = station;
             }
-            if (boardingStation != null && destinationStation != null) {
-                bothStationsAreValid = true;
-                break;
-            }
-        };
-
-        if(bothStationsAreValid) {
-            ArrayList<Train> availableTrains = getAvailableTrains(source, destination);
-
-            if(!availableTrains.isEmpty()) {
-
-                int trainNumber;
-                printTrains(availableTrains);
-                System.out.print("Choose train number : ");
-                trainNumber = scanner.nextInt();
-
-                Train train = availableTrains.stream()
-                        .filter(item -> item.number == trainNumber)
-                        .findFirst().orElse(null);
-
-                if(train != null) {
-                    ArrayList<Ticket> tickets = new ArrayList<>();
-                    int addPassenger = 1;
-                    do {
-                        Passenger passenger = new Passenger();
-                        System.out.print("Enter passenger name: ");
-                        passenger.name = scanner.next();
-                        System.out.print("Enter passenger age: ");
-                        passenger.age = scanner.nextInt();
-//                        System.out.print("Enter passenger dob: ");
-//                        passenger.dob = scanner.next();
-//                        System.out.print("Enter passenger phone: ");
-//                        passenger.phone = scanner.next();
-
-                        Ticket ticket = new Ticket(boardingStation, destinationStation, train, passenger);
-                        tickets.add(ticket);
-
-                        System.out.println("Press 1 to add passenger, other key to proceed to next step.");
-                        addPassenger = scanner.nextInt();
-                    } while (addPassenger == 1);
-                    tickets = train.bookTickets(tickets);
-                    Ticket.printTickets(tickets);
-                } else {
-                    System.out.println("Invalid train number - " + trainNumber);
-                }
-            } else {
-                System.out.println("No trains are running in selected source to destination");
-            }
-        } else {
-            System.out.println("Invalid station selected!!");
+            if (sourceStation != null && destinationStation != null) break;
         }
-    }
 
-    public void printTrains(ArrayList<Train> trains) {
-        for(Train train: trains) {
-            System.out.println("---------------------------------------------------------------------------------");
-            System.out.println("---number: " + train.number + "----name: " + train.name);
-            System.out.println("Seats available: " + train.totalSeats);
-            System.out.println("Waiting List available: " + (train.availableWaitingList - train.totalWaitingList));
-            System.out.println("---------------------------------------------------------------------------------");
-        }
-    }
-
-    public void cancelTicket() {
+        HashMap<String, Station> stationMap = new HashMap<>();
+        stationMap.put("source", sourceStation);
+        stationMap.put("destination", destinationStation);
+        return stationMap;
     }
 }

@@ -1,10 +1,15 @@
 package Railway;
 
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
 public class Passenger {
 
-    String name;
-    int age;
-    String dob;
-    String phone;
+    private String name;
+    private int age;
+    private String dob;
+    private String phone;
 
 }

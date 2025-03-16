@@ -1,86 +1,121 @@
 package Railway;
 
-import java.util.*;
+import lombok.Builder;
+import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Queue;
+
+@Data
+@Builder
 public class Train {
 
-    int number;
-    String name;
-    ArrayList<Station> stations;
-    Station startingPoint;
-    Station destinationPoint;
-    int totalSeats;
-    HashMap<Integer, Boolean> availableSeats;
-    int totalWaitingList;
-    int availableWaitingList;
-    ArrayList<Ticket> bookedTickets;
-    Queue<Ticket> waitingListTickets;
+    private int number;
+    private String name;
+    private List<Station> stations;
+    private Station startingPoint;
+    private Station destinationPoint;
+    private int maxSeats;
+    private int maxWaitingList;
+    private List<Ticket> bookedTickets;
+    private Queue<Ticket> waitingListTickets;
 
-    public Train(int number, String name, ArrayList<Station> stations, Station startingPoint,
-                 Station destinationPoint, int totalSeats, int availableWaitingList, HashMap<Integer, Boolean> availableSeats) {
-        this.number = number;
-        this.name = name;
-        this.stations = stations;
-        this.startingPoint = startingPoint;
-        this.destinationPoint = destinationPoint;
-        this.totalSeats = totalSeats;
-        this.availableWaitingList = availableWaitingList;
-        this.availableSeats = availableSeats;
+    public void checkAvailability(Station source) {
+        Station s = this.stations.stream().filter(station -> station.isEqual(source))
+                .findFirst().orElse(null);
+        if (s != null) {
+            int availableTickets = this.maxSeats - s.getPassengersCount();
+            int availableWaitingList = (this.maxSeats + this.maxWaitingList) - s.getPassengersCount();
+
+            System.out.println(name + "(" + number + ")");
+            if (availableTickets > 0) {
+                System.out.println(availableTickets + " tickets available.");
+            } else if (availableWaitingList > 0) {
+                System.out.println(availableWaitingList + " waiting list available.");
+            } else {
+                System.out.println("No tickets are available");
+            }
+            System.out.println("===================================================");
+        } else {
+            System.out.println("Sorry, some error occurred!!!");
+        }
     }
 
+    public void cancelTicket(Ticket ticket) {
 
-    public ArrayList<Train> checkAvailability(String source, String destination) {
-        /*
-         *  YET TO START..
-         */
-        return null;
+        Status status = ticket.getStatus();
+        ticket.setStatus(Status.CANCELLED);
+
+        int sourceStationIndex = this.stations.indexOf(ticket.getBoarding());
+        int destinationStationIndex = this.stations.indexOf(ticket.getDestination());
+        updateStations(sourceStationIndex, destinationStationIndex, -1);
+
+        if (status == Status.CONFIRMED) {
+            this.bookedTickets.remove(ticket);
+        } else if (status == Status.WAITING_LIST) {
+            this.waitingListTickets.remove(ticket);
+        }
+
     }
 
-    public ArrayList<Ticket> bookTickets(ArrayList<Ticket> tickets) {
+    public List<Ticket> bookTickets(List<Ticket> tickets) {
+
         for (Ticket ticket : tickets) {
 
-            // total seats in train
-            int totalSeatsInTrain = this.totalSeats;
-            // total waitlist available in train
-            int availableWaitingList = this.availableWaitingList;
+            int sourceStationIndex = this.stations.indexOf(ticket.getBoarding());
+            int destinationStationIndex = this.stations.indexOf(ticket.getDestination());
+            Status bookingStatus = Status.NOT_CONFIRMED;
 
-            boolean sourceCrossed = false;
-            boolean destinationCrossed = false;
-            boolean canWeBookTicket = false;
+            // source & destination must be present in this train, as well as source should present before destination
+            if (sourceStationIndex == -1 || destinationStationIndex == -1
+                    || destinationStationIndex < sourceStationIndex) {
+                ticket.setStatus(bookingStatus);
+                continue;
+            }
+            // booking status is determined
+            bookingStatus = determineBookingStatus(sourceStationIndex, destinationStationIndex);
+            if (bookingStatus != Status.NOT_CONFIRMED) {
 
-            for (Station station : ticket.getTrain().stations) {
-                if(!sourceCrossed && station.isEqual(ticket.getBoarding())) {
-                    sourceCrossed = true;
-                } else if (sourceCrossed && station.isEqual(ticket.getDestination())) {
-                    break;
-                }
-                if(sourceCrossed) {
-                    int passengersCount = station.passengersCount;
-                    canWeBookTicket = passengersCount < totalSeatsInTrain;
+                ticket.generatePnr();
+                // if ticket is CONFIRMED or WAITING_LIST,
+                // then we are incrementing one passenger count in source - destination this.stations
+                updateStations(sourceStationIndex, destinationStationIndex, 1);
+
+                if (bookingStatus == Status.CONFIRMED) {
+                    // stored in booked ticket LIST.
+                    this.bookedTickets.add(ticket);
+                } else if (bookingStatus == Status.WAITING_LIST) {
+                    // stored in waiting list QUEUE
+                    this.waitingListTickets.add(ticket);
                 }
             }
-
-            if(canWeBookTicket) {
-                for (Map.Entry<Integer, Boolean> entry : availableSeats.entrySet()) {
-                    Integer seatNumber = entry.getKey();
-                    Boolean isBooked = entry.getValue();
-                    if (!isBooked) {
-                        ticket.generatePnr()
-                                .setSeatNumber(seatNumber).setStatus(Status.CONFIRMED);
-                        availableSeats.put(seatNumber, true);
-                        break;
-                    }
-                }
-                if(ticket.getStatus() != Status.CONFIRMED && waitingListTickets.size() < totalWaitingList) {
-                    ticket.generatePnr()
-                            .setSeatNumber(0).setStatus(Status.WAITING_LIST);
-                    waitingListTickets.add(ticket);
-                    break;
-                }
-                ticket.setStatus(Status.NOT_CONFIRMED);
-            }
+            ticket.setStatus(bookingStatus);
         }
         return tickets;
     }
 
+    private Status determineBookingStatus(int sourceStationIndex, int destinationStationIndex) {
+        Status status = Status.NOT_CONFIRMED;
+        for (int i = sourceStationIndex; i <= destinationStationIndex; i++) {
+            int passengersCount = this.stations.get(i).getPassengersCount();
+            if (passengersCount < this.maxSeats) {
+                // if seats available in all station, then we can confirm
+                status = Status.CONFIRMED;
+            } else if (passengersCount < this.maxSeats + this.maxWaitingList) {
+                status = Status.WAITING_LIST;
+            } else {
+                return Status.NOT_CONFIRMED;
+            }
+        }
+        return status;
+    }
+
+    private void updateStations(int sourceIndex, int destinationIndex, int action) {
+        for (int i = sourceIndex; i < destinationIndex; i++) {
+            Station station = this.stations.get(i);
+            station.setPassengersCount(station.getPassengersCount() + action);
+        }
+    }
 }
