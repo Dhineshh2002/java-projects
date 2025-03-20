@@ -20,28 +20,22 @@ public class Train {
     private List<Ticket> bookedTickets;
     private Queue<Ticket> waitingListTickets;
 
-    public void checkAvailability(Station source) {
-        Station s = this.stations.stream().filter(station -> station.isEqual(source))
-                .findFirst().orElse(null);
-        if (s != null) {
-            int availableTickets = this.maxSeats - s.getPassengersCount();
-            int availableWaitingList = (this.maxSeats + this.maxWaitingList) - s.getPassengersCount();
-
-            System.out.println(name + "(" + number + ")");
-            if (availableTickets > 0) {
-                System.out.println(availableTickets + " tickets available.");
-            } else if (availableWaitingList > 0) {
-                System.out.println(availableWaitingList + " waiting list available.");
-            } else {
-                System.out.println("No tickets are available");
-            }
-            System.out.println("===================================================");
-        } else {
-            System.out.println("Sorry, some error occurred!!!");
-        }
+    public void checkAvailability(Station source, Station destination) {
+        int maxPassengerBtwRoute = getMaxPassengerBtwRoute(
+                stations.indexOf(source), stations.indexOf(destination));
+        int availableTickets = this.maxSeats - maxPassengerBtwRoute;
+        int availableWaitingList = (this.maxSeats + this.maxWaitingList) - maxPassengerBtwRoute;
+        System.out.println("Train: " + this.name + "(" + this.number + ")");
+        if (availableTickets > 0)
+            System.out.println(availableTickets + " tickets available.");
+        else if (availableWaitingList > 0)
+            System.out.println(availableWaitingList + " waiting list available.");
+        else
+            System.out.println("No tickets are available");
+        System.out.println("===================================================");
     }
 
-    public void cancelTicket(Ticket ticket) {
+    public void cancelTicket(Ticket ticket){
 
         Status status = ticket.getStatus();
         ticket.setStatus(Status.CANCELLED);
@@ -52,6 +46,11 @@ public class Train {
 
         if (status == Status.CONFIRMED) {
             this.bookedTickets.remove(ticket);
+            Ticket waitingListTicket = this.waitingListTickets.poll();
+            if(waitingListTicket != null) {
+                waitingListTicket.setStatus(Status.CONFIRMED);
+                this.bookedTickets.add(waitingListTicket);
+            }
         } else if (status == Status.WAITING_LIST) {
             this.waitingListTickets.remove(ticket);
         }
@@ -66,7 +65,8 @@ public class Train {
             int destinationStationIndex = this.stations.indexOf(ticket.getDestination());
             Status bookingStatus = Status.NOT_CONFIRMED;
 
-            // source & destination must be present in this train, as well as source should present before destination
+            // source & destination must be present in this train,
+            // as well as source should present before destination
             if (sourceStationIndex == -1 || destinationStationIndex == -1
                     || destinationStationIndex < sourceStationIndex) {
                 ticket.setStatus(bookingStatus);
@@ -96,13 +96,13 @@ public class Train {
 
     private Status determineBookingStatus(int sourceStationIndex, int destinationStationIndex) {
         Status status = Status.NOT_CONFIRMED;
-        for (int i = sourceStationIndex; i <= destinationStationIndex; i++) {
+        for (int i = sourceStationIndex; i < destinationStationIndex; i++) {
             int passengersCount = this.stations.get(i).getPassengersCount();
             if (passengersCount < this.maxSeats) {
                 // if seats available in all station, then we can confirm
                 status = Status.CONFIRMED;
             } else if (passengersCount < this.maxSeats + this.maxWaitingList) {
-                status = Status.WAITING_LIST;
+                return Status.WAITING_LIST;
             } else {
                 return Status.NOT_CONFIRMED;
             }
@@ -115,5 +115,14 @@ public class Train {
             Station station = this.stations.get(i);
             station.setPassengersCount(station.getPassengersCount() + action);
         }
+    }
+
+    private int getMaxPassengerBtwRoute(int source, int destination) {
+        int maxPassengerBtwRoute = Integer.MIN_VALUE;
+        for(int i = source; i<destination; i++) {
+            Station station = this.stations.get(i);
+            maxPassengerBtwRoute = Integer.max(station.getPassengersCount(), maxPassengerBtwRoute);
+        }
+        return maxPassengerBtwRoute;
     }
 }

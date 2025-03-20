@@ -19,7 +19,6 @@ public class IndianRailway {
         IndianRailway.trains.add(train);
     }
 
-
     private List<Train> getAvailableTrains(Station source, Station destination) {
         List<Train> availableTrains = new ArrayList<>();
 
@@ -30,12 +29,12 @@ public class IndianRailway {
             for (int i = 0; i < stations.size(); i++) {
                 Station station = stations.get(i);
 
-                if (station.isEqual(source)) {
+                if (station.equals(source)) {
                     sourceIndex = i;
                     continue;
                 }
 
-                if (sourceIndex != -1 && station.isEqual(destination)) {
+                if (sourceIndex != -1 && station.equals(destination)) {
                     availableTrains.add(train);
                     break;
                 }
@@ -125,11 +124,15 @@ public class IndianRailway {
         isHeSure = scanner.next();
 
         if (isHeSure.equalsIgnoreCase("Y") || isHeSure.equalsIgnoreCase("YES")) {
-            Ticket ticket = findTicket(pnr);
-            if (ticket != null) {
-                ticket.getTrain().cancelTicket(ticket);
-            } else {
-                System.out.println("Invalid pnr number!");
+            try {
+                Ticket ticket = findTicket(pnr);
+                if (ticket != null) {
+                    ticket.getTrain().cancelTicket(ticket);
+                } else {
+                    System.out.println("Invalid pnr number!");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         } else {
             System.out.println("Ticket cancellation process is cancelled..");
@@ -139,8 +142,8 @@ public class IndianRailway {
 
     private Ticket findTicket(String pnr) {
         for (Train train : trains) {
-            System.out.println(train.getBookedTickets());
-            return train.getBookedTickets().stream()
+            List<Ticket> bookedTickets = train.getBookedTickets();
+            return bookedTickets.stream()
                     .filter(ticket -> ticket.getPnr().equalsIgnoreCase(pnr))
                     .findFirst().orElseGet(() -> train.getWaitingListTickets().stream()
                             .filter(ticket -> ticket.getPnr().equalsIgnoreCase(pnr))
@@ -156,8 +159,7 @@ public class IndianRailway {
         Station destinationStation = stationHashMap.get("destination");
         if(sourceStation != null && destinationStation != null) {
             List<Train> availableTrains = getAvailableTrains(sourceStation, destinationStation);
-            printTrains(availableTrains);
-            availableTrains.forEach(train -> train.checkAvailability(sourceStation));
+            availableTrains.forEach(train -> train.checkAvailability(sourceStation, destinationStation));
         }
     }
 
@@ -173,7 +175,6 @@ public class IndianRailway {
         Station sourceStation = null;
         Station destinationStation = null;
 
-
         for (Station station : stations) {
             if (sourceStation == null && station.isEqual(source)) {
                 sourceStation = station;
@@ -188,4 +189,32 @@ public class IndianRailway {
         stationMap.put("destination", destinationStation);
         return stationMap;
     }
+
+//    public void viewTicket() {
+//        int ch;
+//        System.out.println("Retrieve ticket using\n 1) PNR \n 2) Passenger details");
+//        ch = scanner.nextInt();
+//        switch (ch){
+//            case 1 -> getPnr();
+//            case 2 -> getPassenger();
+//            default: break;
+//        }
+//    }
+//
+//    private Passenger getPassenger() {
+//        System.out.println("Enter name and age");
+//        String name = scanner.next();
+//        int age = scanner.nextInt();
+//        return findPassenger(name, age);
+//    }
+//
+//    private Passenger findPassenger(String name, int age) {
+//
+//    }
+//
+//    private String getPnr() {
+//        System.out.println("Enter your PNR: ");
+//        String pnr = scanner.next();
+//        return pnr;
+//    }
 }
